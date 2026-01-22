@@ -1,0 +1,16 @@
+﻿export const state = {
+  step: 0,
+  mode: 'toy',
+  program: [],
+  ip: 0,
+  stack: [],
+  micro: [],
+  task: [],
+  console: [],
+  customTimeline: [],
+  customIndex: 0,
+  customCapturing: false,
+  phase: 'idle',
+  pending: null,
+  autoTimer: null,
+};

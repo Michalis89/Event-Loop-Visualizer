@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="el">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title data-i18n="meta.title">Event Loop Visualizer (Vanilla)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1 data-i18n="header.title">
+        Event Loop Visualizer (Vanilla) — Step-by-step για να το καταλαβαίνει οποιοσδήποτε
+      </h1>
+      <div class="controls">
+        <span class="badge" id="stepBadge">Step 0</span>
+        <button class="lang-btn" id="langToggle" data-i18n-title="ui.langSwitchTitle">EN</button>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="top">
+        <div class="card">
+          <div class="hd" data-i18n="ui.codeCardTitle">Code</div>
+          <div class="bd">
+            <div class="controls" style="margin-bottom: 10px">
+              <select id="codeMode" data-i18n-title="ui.modeTitle">
+                <option value="toy" data-i18n="ui.codeModeToy">Code (toy syntax)</option>
+                <option value="custom" data-i18n="ui.codeModeCustom">Custom JS (τρέχει στο browser)</option>
+              </select>
+            </div>
+
+            <div id="toyPanel">
+              <div class="controls" style="margin-bottom: 10px">
+                <select id="preset" data-i18n-title="ui.presetTitle"></select>
+                <button class="primary" id="loadPreset" data-i18n="ui.load" data-i18n-title="ui.loadTitle">
+                  Load
+                </button>
+                <button id="compile" data-i18n="ui.compile" data-i18n-title="ui.compileTitle">
+                  Compile
+                </button>
+                <span class="muted" id="compileInfo"></span>
+              </div>
+              <textarea id="code"></textarea>
+              <div class="footer muted" data-i18n-html="ui.supportedHtml">
+                Υποστηρίζεται: <code>log("x")</code>, <code>then("x")</code>,
+                <code>timeout("x")</code>, <code>await("x")</code>, <code>async { ... }</code>
+              </div>
+            </div>
+
+            <div id="customPanel" style="display: none">
+              <textarea id="customCode" style="height: 180px"></textarea>
+            </div>
+
+            <div class="controls" style="margin-bottom: 10px">
+              <select id="analysisType" data-i18n-title="ui.analysisTypeTitle">
+                <option value="execution" data-i18n="analysis.execution">Execution Flow</option>
+                <option value="queues" data-i18n="analysis.queues">Queues Timeline</option>
+                <option value="stack" data-i18n="analysis.stack">Stack Trace</option>
+                <option value="detailed" data-i18n="analysis.detailed">Detailed Analysis</option>
+              </select>
+              <button id="analyzeBtn" data-i18n="ui.analyze" data-i18n-title="ui.analyzeTitle">
+                Analyze Code
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd" data-i18n="ui.narratorTitle">Narrator (1 κανόνας τη φορά)</div>
+          <div class="bd narrator">
+            <div class="row">
+              <span class="tag what" data-i18n="labels.now">Τώρα</span>
+              <div id="nNow" class="muted" data-i18n="ui.defaultNow">Πάτα Compile και μετά Step.</div>
+            </div>
+            <div class="row">
+              <span class="tag rule" data-i18n="labels.rule">Rule</span>
+              <div id="nRule" class="muted" data-i18n="ui.defaultRule">
+                Όταν αδειάσει το Call Stack, αδειάζουν ΟΛΑ τα Microtasks πριν παρθεί Task.
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag why" data-i18n="labels.why">Why</span>
+              <div id="nWhy" class="muted" data-i18n="ui.defaultWhy">
+                Γι’ αυτό τα Promise callbacks “περνάνε μπροστά” από setTimeout(0).
+              </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="hd" style="border-radius: 12px; margin-bottom: 8px" data-i18n="ui.narratorLogTitle">
+              Narrator Log
+            </div>
+            <div class="console" id="nLog" style="max-height: 220px; overflow: auto"></div>
+
+            <div class="hr"></div>
+
+            <div class="controls">
+              <button class="primary" id="step" data-i18n="ui.step" data-i18n-title="ui.stepTitle">
+                Step
+              </button>
+              <button id="auto" data-i18n="ui.auto" data-i18n-title="ui.autoTitle">Auto</button>
+              <input
+                id="speed"
+                type="range"
+                min="80"
+                max="1200"
+                value="450"
+                data-i18n-title="ui.speedTitle"
+              />
+              <button class="danger" id="reset" data-i18n="ui.reset" data-i18n-title="ui.resetTitle">
+                Reset
+              </button>
+            </div>
+
+            <div class="footer muted" data-i18n="ui.tip">
+              Tip: Στο Auto θα βλέπεις καθαρά το “microtask checkpoint”.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid4">
+        <div class="card">
+          <div class="hd" data-i18n="ui.callStackTitle">Call Stack (Τώρα εκτελείται)</div>
+          <div class="bd"><div class="list" id="stack"></div></div>
+        </div>
+        <div class="card">
+          <div class="hd" data-i18n="ui.microQueueTitle">Microtask Queue (VIP σειρά)</div>
+          <div class="bd"><div class="list" id="micro"></div></div>
+        </div>
+        <div class="card">
+          <div class="hd" data-i18n="ui.taskQueueTitle">Task Queue (Timers/Events)</div>
+          <div class="bd"><div class="list" id="task"></div></div>
+        </div>
+        <div class="card">
+          <div class="hd" data-i18n="ui.consoleOutputTitle">Console Output</div>
+          <div class="bd">
+            <div class="console" id="console"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="analysisPanel" style="display: none">
+        <div class="hd" data-i18n="ui.analysisPanelTitle">Code Analysis Steps</div>
+        <div class="bd">
+          <div class="console" id="analysisOutput" style="min-height: 200px"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="scripts/main.js"></script>
+  </body>
+</html>
